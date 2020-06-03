@@ -1,23 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-ST-DBSCAN - fast scalable implementation of ST DBSCAN
+ST-H-DBSCAN - fast scalable implementation of ST DBSCAN
             scales also to memory by splitting into frames
             and merging the clusters together
+            
+            
+            --> new and hopefully improved "H" model!
 """
 
-# Author: Eren Cakmak <eren.cakmak@uni-konstanz.de>
-#
+# ST_DBSCAN Author: Eren Cakmak <eren.cakmak@uni-konstanz.de>
+
+# Updated/adapted to HDBSCAN by: Simon Levine-Gottreich <simonlevine@cmu.edu>
 # License: MIT
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
-from sklearn.cluster import DBSCAN
+# from sklearn.cluster import DBSCAN
+from hdbscan import HDBSCAN
 from sklearn.utils import check_array
 
 
-class ST_DBSCAN():
+class ST_HDBSCAN():
     """
-    A class to perform the ST_DBSCAN clustering
+    A class to perform the ST_HDBSCAN clustering
     Parameters
     ----------
     eps1 : float, default=0.5
@@ -54,7 +59,7 @@ class ST_DBSCAN():
     def __init__(self,
                  eps1=0.5,
                  eps2=10,
-                 min_samples=5,
+                 min_samples=10,
                  metric='euclidean',
                  n_jobs=-1):
         self.eps1 = eps1
@@ -93,10 +98,14 @@ class ST_DBSCAN():
 
         # filter the euc_dist matrix using the time_dist
         dist = np.where(time_dist <= self.eps2, euc_dist, 2 * self.eps1)
-
-        db = DBSCAN(eps=self.eps1,
-                    min_samples=self.min_samples,
+        
+        db = HDBSCAN(min_samples=self.min_samples,
                     metric='precomputed')
+            
+       # db = DBSCAN(eps=self.eps1,
+       #            min_samples=self.min_samples,
+       #            metric='precomputed')
+
         db.fit(dist)
 
         self.labels = db.labels_
@@ -105,7 +114,7 @@ class ST_DBSCAN():
 
     def fit_frame_split(self, X, frame_size, frame_overlap=None):
         """
-        Apply the ST DBSCAN algorithm with splitting it into frames 
+        Apply the ST-HDBSCAN algorithm with splitting it into frames 
         Merging is still not optimal resulting in minor errors in 
         the overlapping area. In this case the input data has to be 
         sorted for by time. 
@@ -161,9 +170,13 @@ class ST_DBSCAN():
                 dist = np.where(time_dist <= self.eps2, euc_dist,
                                 2 * self.eps1)
 
-                db = DBSCAN(eps=self.eps1,
-                            min_samples=self.min_samples,
-                            metric='precomputed')
+                # db = DBSCAN(eps=self.eps1,
+                #            min_samples=self.min_samples,
+                #            metric='precomputed')
+                        
+                db = HDBSCAN(min_samples=self.min_samples,
+                    metric='precomputed')
+            
                 db.fit(dist)
 
                 # very simple merging - take just right clusters of the right frame
